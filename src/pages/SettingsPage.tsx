@@ -1,7 +1,8 @@
 /** Settings: appearance, reading preferences, AI provider (Intelligence), account. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
-import { serverMode } from '../lib/data';
+import { api, serverMode } from '../lib/data';
+import { loomAvailable, loomConnected, loomAccountEmail, connectLoom, disconnectLoom, syncCardsToLoom } from '../lib/loom';
 import { I } from '../components/icons';
 import { ScreenHead, Toast, fieldStyle, primaryBtn, secondaryBtn, wrap } from '../components/ui';
 
@@ -208,6 +209,10 @@ export default function SettingsPage() {
 
       </>}
 
+      {/* Knowledge Loom */}
+      <div className="eyebrow" style={{ margin: '44px 0 8px' }}>Knowledge Loom</div>
+      <LoomSection flash={flash} />
+
       {/* Account */}
       <div className="eyebrow" style={{ margin: '44px 0 14px' }}>Account</div>
       {authEnabled ? (
@@ -225,6 +230,91 @@ export default function SettingsPage() {
       )}
 
       {toast && <Toast message={toast} />}
+    </div>
+  );
+}
+
+/** Grove is Loom-aware: connect the shared account, push cards into Loom. */
+function LoomSection({ flash }: { flash: (msg: string) => void }) {
+  const [connected, setConnected] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => {
+    loomConnected().then(setConnected);
+    loomAccountEmail().then(setAccountEmail);
+  };
+  useEffect(refresh, []);
+
+  if (!loomAvailable) {
+    return (
+      <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>
+        Grove pairs with <strong>Knowledge Loom</strong> — your notes and recall cards can flow into
+        your Loom vault. This build isn't configured for it (it needs VITE_LOOM_API and the shared
+        Supabase settings).
+      </p>
+    );
+  }
+
+  const syncCards = async () => {
+    setBusy(true);
+    try {
+      const cards = await api.fetchCards();
+      if (cards.length === 0) { flash('No cards to sync yet'); return; }
+      const sent = await syncCardsToLoom(cards);
+      flash(`${sent} card${sent === 1 ? '' : 's'} synced to Loom`);
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (connected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>
+          Connected to Knowledge Loom{accountEmail ? <> as <strong>{accountEmail}</strong></> : ''}. Notes you
+          send from a book's page land in your vault; cards sync into Loom's flashcards.
+        </p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {serverMode && (
+            <button onClick={syncCards} disabled={busy} style={{ ...secondaryBtn, opacity: busy ? 0.6 : 1 }}>
+              <I.cards size={16} /> {busy ? 'Syncing…' : 'Sync recall cards to Loom'}
+            </button>
+          )}
+          {!serverMode && (
+            <button onClick={() => disconnectLoom().then(refresh)} style={secondaryBtn}>
+              <I.logout size={16} /> Disconnect
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 420 }}>
+      <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>
+        Have a Knowledge Loom account? Connect it to send reading notes and recall cards into your vault.
+        Your Grove library stays on this device.
+      </p>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" style={fieldStyle} />
+      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" style={fieldStyle} />
+      <button
+        onClick={async () => {
+          setBusy(true);
+          try { await connectLoom(email, password); refresh(); flash('Connected to Knowledge Loom'); }
+          catch (err) { flash((err as Error).message); }
+          finally { setBusy(false); }
+        }}
+        disabled={busy || !email || !password}
+        style={{ ...primaryBtn, opacity: busy || !email || !password ? 0.6 : 1 }}
+      >
+        {busy ? 'Connecting…' : 'Connect Loom account'}
+      </button>
     </div>
   );
 }

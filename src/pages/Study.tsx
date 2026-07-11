@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, serverMode } from '../lib/data';
+import { loomConnected, syncCardsToLoom } from '../lib/loom';
 import { useReviewSession } from '../hooks/useReviewSession';
 import { ReviewSessionView } from '../components/review/ReviewSession';
 import { ReviewDone } from '../components/review/ReviewDone';
@@ -113,19 +114,45 @@ function Cards() {
   const [open, setOpen] = useState<Card | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loomOn, setLoomOn] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     api.fetchCards().then((c) => { setCards(c); setLoaded(true); }).catch(() => setLoaded(true));
+    loomConnected().then(setLoomOn);
   }, []);
 
   const due = cards.filter((c) => c.status === 'due' || c.status === 'new').length;
+
+  const syncToLoom = async () => {
+    setSyncing(true);
+    try {
+      const sent = await syncCardsToLoom(cards);
+      setToast(`${sent} card${sent === 1 ? '' : 's'} synced to Loom`);
+    } catch (err) {
+      setToast((err as Error).message);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setToast(''), 2200);
+    }
+  };
 
   return (
     <div className="grove-enter" style={{ ...wrap, paddingTop: 30 }}>
       <ScreenHead
         title="Recall cards"
         sub="Cards distilled from your highlights. Review them to keep what you read."
-        right={due > 0 ? <span style={{ fontSize: 13.5, color: 'var(--accent)', fontWeight: 600 }}>{due} ready to review</span> : undefined}
+        right={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {loomOn && cards.length > 0 && (
+              <button onClick={syncToLoom} disabled={syncing} style={{ ...linkBtn, fontWeight: 600, opacity: syncing ? 0.6 : 1 }}>
+                {syncing ? 'Syncing…' : 'Sync to Loom'}
+              </button>
+            )}
+            {due > 0 && <span style={{ fontSize: 13.5, color: 'var(--accent)', fontWeight: 600 }}>{due} ready to review</span>}
+          </span>
+        }
       />
       {loaded && cards.length === 0 ? (
         <Empty icon={<I.cards size={30} />} title="No cards yet" sub="Make cards from passages in the reader, or generate them from your highlights on a book's page." />
@@ -194,6 +221,7 @@ function Cards() {
           </div>
         </div>
       )}
+      {toast && <Toast message={toast} />}
     </div>
   );
 }

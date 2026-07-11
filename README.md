@@ -38,6 +38,20 @@ exactly once, exported by `@knowledge-loom/server` and imported by
 grove-server; it never ships to the client. Cards & review are
 server-mode features.
 
+## Knowledge Loom bridge
+
+Grove is Loom-aware. In server mode you're connected by definition (one
+account, one backend); the offline app can connect a Loom account from
+**Settings → Knowledge Loom** (build with `VITE_LOOM_API` + the shared
+Supabase vars). Once connected:
+
+- **Send notes to Loom** (book page) — writes a per-book reading digest
+  (highlights + margin notes, grouped by chapter) into your Loom vault.
+- **Sync recall cards to Loom** (Study → Cards, or Settings) — copies cards
+  into Loom's flashcards, anchored to a per-book "Grove cards" note.
+
+Grove data never leaves the device except for what you explicitly push.
+
 ## Develop
 
 ```bash

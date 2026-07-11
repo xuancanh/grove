@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, serverMode } from '../lib/data';
+import { loomConnected, sendNoteToLoom, buildReadingDigest } from '../lib/loom';
 import type { BookDetail, Highlight } from '../lib/types';
 import { useStore } from '../lib/store';
 import { Cover, I, TagDot } from '../components/icons';
@@ -21,6 +22,8 @@ export default function BookPage({ openAI }: { openAI: (init?: AiInit) => void }
   const navigate = useNavigate();
   const { library, refreshLibrary } = useStore();
   const [book, setBook] = useState<BookDetail | null>(null);
+  const [loomOn, setLoomOn] = useState(false);
+  const [sendingLoom, setSendingLoom] = useState(false);
   const [notes, setNotes] = useState<Highlight[]>([]);
   const [toast, setToast] = useState('');
   const [busyCards, setBusyCards] = useState(false);
@@ -31,6 +34,7 @@ export default function BookPage({ openAI }: { openAI: (init?: AiInit) => void }
   useEffect(() => {
     api.fetchBook(bookId).then(setBook).catch((e) => setError(e.message));
     api.fetchHighlights(bookId).then(setNotes).catch(() => {});
+    loomConnected().then(setLoomOn);
   }, [bookId]);
 
   const flash = (msg: string) => {
@@ -53,6 +57,20 @@ export default function BookPage({ openAI }: { openAI: (init?: AiInit) => void }
   const setStatus = async (status: string) => {
     await api.updateLibraryBook(bookId, { status });
     await refreshLibrary();
+  };
+
+  const sendToLoom = async () => {
+    if (!book) return;
+    setSendingLoom(true);
+    try {
+      const digest = buildReadingDigest(book, notes);
+      await sendNoteToLoom(digest.title, digest.body);
+      flash('Reading digest sent to your Loom vault');
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      setSendingLoom(false);
+    }
   };
 
   const generateCards = async () => {
@@ -108,6 +126,11 @@ export default function BookPage({ openAI }: { openAI: (init?: AiInit) => void }
             <button onClick={() => navigate(`/read/${bookId}/${resumeChapter}`)} style={primaryBtn}>
               {membership.progress > 0 ? 'Resume reading' : 'Start reading'} <I.arrowRight size={16} />
             </button>
+            {loomOn && notes.length > 0 && (
+              <button onClick={sendToLoom} disabled={sendingLoom} style={{ ...secondaryBtn, opacity: sendingLoom ? 0.6 : 1 }}>
+                <I.notes size={16} /> {sendingLoom ? 'Sending…' : 'Send notes to Loom'}
+              </button>
+            )}
             {serverMode && <button onClick={generateCards} disabled={busyCards} style={{ ...secondaryBtn, opacity: busyCards ? 0.6 : 1 }}>
               <I.sparkle size={16} /> {busyCards ? 'Generating…' : 'Generate cards'}
             </button>}
