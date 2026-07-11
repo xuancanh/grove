@@ -1,0 +1,139 @@
+/* lume.css — Lume design system
+   Themes set via [data-theme] on .lume-root. Fonts via [data-readfont]/[data-uifont]. */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Hanken+Grotesk:wght@300..700&family=Spectral:ital,wght@0,300..600;1,300..500&family=Fraunces:opsz,wght@9..144,300..600&family=Lora:ital,wght@0,400..600;1,400..500&family=Literata:opsz,wght@7..72,300..600&family=Inter:wght@300..700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --ui: 'Hanken Grotesk', system-ui, sans-serif;
+  --read: 'Newsreader', Georgia, serif;
+  --mono: 'Space Mono', ui-monospace, monospace;
+  --tag-beautiful: #C9764A;
+  --tag-important: #3E7C8B;
+  --tag-question:  #8A6CB0;
+  --tag-idea:      #5E8C5A;
+}
+
+/* ── THEME: Paper (default warm) ─────────────────────────────── */
+.lume-root[data-theme="paper"] {
+  --bg: #F1EBDD;           /* app canvas */
+  --surface: #F8F4EA;      /* cards */
+  --surface-2: #EDE6D6;    /* recessed */
+  --page: #FBF7EE;         /* reading page */
+  --ink: #2B2722;          /* primary text */
+  --ink-2: #6A6356;        /* secondary */
+  --ink-3: #9A9282;        /* tertiary / meta */
+  --line: #E0D8C6;         /* hairlines */
+  --line-2: #D2C9B4;
+  --accent: #B5552F;       /* terracotta */
+  --accent-ink: #FBF7EE;
+  --hl: rgba(201,118,74,0.18);
+}
+/* ── THEME: Slate (cool architectural) ──────────────────────── */
+.lume-root[data-theme="slate"] {
+  --bg: #E8EAEC;
+  --surface: #F4F6F7;
+  --surface-2: #DFE3E6;
+  --page: #FAFBFC;
+  --ink: #20262B;
+  --ink-2: #5A646C;
+  --ink-3: #97A0A8;
+  --line: #DCE1E4;
+  --line-2: #CAD1D6;
+  --accent: #2F6E8B;
+  --accent-ink: #FAFBFC;
+  --hl: rgba(47,110,139,0.16);
+}
+/* ── THEME: Night (dark) ────────────────────────────────────── */
+.lume-root[data-theme="night"] {
+  --bg: #0E1013;           /* deep base */
+  --surface: #1C2027;      /* cards — clearly lifted off bg */
+  --surface-2: #272C34;    /* recessed / toggles */
+  --page: #14171B;         /* reading page */
+  --ink: #F4F2EC;          /* bright primary — high contrast */
+  --ink-2: #BBB8AE;        /* legible secondary */
+  --ink-3: #83817A;        /* meta, still readable */
+  --line: #333944;         /* visible hairline */
+  --line-2: #454C58;
+  --accent: #E0965C;       /* warm, bright enough on dark */
+  --accent-ink: #0E1013;
+  --hl: rgba(224,150,92,0.26);
+}
+/* ── THEME: Sage (muted calm green) ─────────────────────────── */
+.lume-root[data-theme="sage"] {
+  --bg: #E4E8DF;
+  --surface: #EEF1E8;
+  --surface-2: #DBE0D2;
+  --page: #F3F5EE;
+  --ink: #262B24;
+  --ink-2: #5C6356;
+  --ink-3: #939A8A;
+  --line: #D6DBCC;
+  --line-2: #C6CCB9;
+  --accent: #5E7A4E;
+  --accent-ink: #F3F5EE;
+  --hl: rgba(94,122,78,0.18);
+}
+
+/* ── THEME: Indigo (cool, modern, jewel accent) ─────────────── */
+.lume-root[data-theme="indigo"] {
+  --bg: #E9EAF3;           /* cool violet-tinted canvas */
+  --surface: #F4F5FB;
+  --surface-2: #DEE0EE;
+  --page: #FBFBFE;         /* near-white page, faint cool tint */
+  --ink: #1F2138;          /* deep blue-ink */
+  --ink-2: #555873;
+  --ink-3: #9092AE;
+  --line: #DBDCEC;
+  --line-2: #C9CBE0;
+  --accent: #4B45D1;       /* vivid indigo */
+  --accent-ink: #FBFBFE;
+  --hl: rgba(75,69,209,0.16);
+}
+
+/* ── Font tweak hooks ───────────────────────────────────────── */
+.lume-root[data-readfont="newsreader"] { --read: 'Newsreader', Georgia, serif; }
+.lume-root[data-readfont="spectral"]   { --read: 'Spectral', Georgia, serif; }
+.lume-root[data-readfont="lora"]       { --read: 'Lora', Georgia, serif; }
+.lume-root[data-readfont="literata"]   { --read: 'Literata', Georgia, serif; }
+.lume-root[data-readfont="fraunces"]   { --read: 'Fraunces', Georgia, serif; }
+.lume-root[data-uifont="hanken"] { --ui: 'Hanken Grotesk', system-ui, sans-serif; }
+.lume-root[data-uifont="inter"]  { --ui: 'Inter', system-ui, sans-serif; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: #0d0d0f; }
+
+.lume-root {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+::selection { background: var(--hl); }
+
+/* scrollbars */
+.lume-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.lume-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 20px; border: 3px solid transparent; background-clip: content-box; }
+.lume-scroll::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: content-box; }
+.lume-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+@keyframes lumeFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes lumeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lumeScaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes lumeSheetUp { from { transform: translateY(101%); } to { transform: translateY(0); } }
+@keyframes lumeShimmer { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+.lume-enter { animation: lumeFade 0.5s cubic-bezier(0.2,0.7,0.2,1) both; }

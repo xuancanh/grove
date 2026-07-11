@@ -1,0 +1,125 @@
+/* Grove design system — ported from design/grove.css.
+   Themes set via [data-theme] on .grove-root. Fonts via [data-readfont]/[data-uifont]. */
+
+:root {
+  --ui: 'Hanken Grotesk', system-ui, sans-serif;
+  --read: 'Newsreader', Georgia, serif;
+  --mono: 'Space Mono', ui-monospace, monospace;
+  --tag-beautiful: #C9764A;
+  --tag-important: #3E7C8B;
+  --tag-question:  #8A6CB0;
+  --tag-idea:      #5E8C5A;
+}
+
+/* ── THEME: Paper ───────────────────────────────────────────── */
+.grove-root[data-theme="paper"] {
+  --bg: #F1EBDD; --surface: #F8F4EA; --surface-2: #EDE6D6; --page: #FBF7EE;
+  --ink: #2B2722; --ink-2: #6A6356; --ink-3: #9A9282;
+  --line: #E0D8C6; --line-2: #D2C9B4;
+  --accent: #B5552F; --accent-ink: #FBF7EE; --hl: rgba(201,118,74,0.18);
+}
+/* ── THEME: Slate ───────────────────────────────────────────── */
+.grove-root[data-theme="slate"] {
+  --bg: #E8EAEC; --surface: #F4F6F7; --surface-2: #DFE3E6; --page: #FAFBFC;
+  --ink: #20262B; --ink-2: #5A646C; --ink-3: #97A0A8;
+  --line: #DCE1E4; --line-2: #CAD1D6;
+  --accent: #2F6E8B; --accent-ink: #FAFBFC; --hl: rgba(47,110,139,0.16);
+}
+/* ── THEME: Night ───────────────────────────────────────────── */
+.grove-root[data-theme="night"] {
+  --bg: #0E1013; --surface: #1C2027; --surface-2: #272C34; --page: #14171B;
+  --ink: #F4F2EC; --ink-2: #BBB8AE; --ink-3: #83817A;
+  --line: #333944; --line-2: #454C58;
+  --accent: #E0965C; --accent-ink: #0E1013; --hl: rgba(224,150,92,0.26);
+}
+/* ── THEME: Sage ────────────────────────────────────────────── */
+.grove-root[data-theme="sage"] {
+  --bg: #E4E8DF; --surface: #EEF1E8; --surface-2: #DBE0D2; --page: #F3F5EE;
+  --ink: #262B24; --ink-2: #5C6356; --ink-3: #939A8A;
+  --line: #D6DBCC; --line-2: #C6CCB9;
+  --accent: #5E7A4E; --accent-ink: #F3F5EE; --hl: rgba(94,122,78,0.18);
+}
+/* ── THEME: Indigo (default) ────────────────────────────────── */
+.grove-root[data-theme="indigo"] {
+  --bg: #E9EAF3; --surface: #F4F5FB; --surface-2: #DEE0EE; --page: #FBFBFE;
+  --ink: #1F2138; --ink-2: #555873; --ink-3: #9092AE;
+  --line: #DBDCEC; --line-2: #C9CBE0;
+  --accent: #4B45D1; --accent-ink: #FBFBFE; --hl: rgba(75,69,209,0.16);
+}
+
+/* ── Font tweak hooks ───────────────────────────────────────── */
+.grove-root[data-readfont="newsreader"] { --read: 'Newsreader', Georgia, serif; }
+.grove-root[data-readfont="spectral"]   { --read: 'Spectral', Georgia, serif; }
+.grove-root[data-readfont="lora"]       { --read: 'Lora', Georgia, serif; }
+.grove-root[data-readfont="literata"]   { --read: 'Literata', Georgia, serif; }
+.grove-root[data-readfont="fraunces"]   { --read: 'Fraunces', Georgia, serif; }
+.grove-root[data-uifont="hanken"] { --ui: 'Hanken Grotesk', system-ui, sans-serif; }
+.grove-root[data-uifont="inter"]  { --ui: 'Inter', system-ui, sans-serif; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: #0d0d0f; }
+
+.grove-root {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+::selection { background: var(--hl); }
+
+.grove-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.grove-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 20px; border: 3px solid transparent; background-clip: content-box; }
+.grove-scroll::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: content-box; }
+.grove-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+input::placeholder, textarea::placeholder { color: var(--ink-3); opacity: 0.8; }
+
+@keyframes groveFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes groveFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes groveScaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes groveSheetUp { from { transform: translateY(101%); } to { transform: translateY(0); } }
+@keyframes groveDrawerIn { from { transform: translateX(101%); } to { transform: translateX(0); } }
+@keyframes groveShimmer { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+.grove-enter { animation: groveFade 0.5s cubic-bezier(0.2,0.7,0.2,1) both; }
+
+.hover-lift { transition: transform 0.22s cubic-bezier(0.2,0.7,0.2,1), box-shadow 0.22s; }
+.hover-lift:hover { transform: translateY(-3px); }
+.row-hover { transition: background 0.15s; }
+.row-hover:hover { background: var(--surface-2) !important; }
+
+/* responsive: sidebar on wide, bottom tabs on narrow */
+@media (max-width: 760px) {
+  .grove-sidebar { display: none !important; }
+  .grove-bottom { display: grid !important; }
+  main { padding-bottom: 76px; }
+  .grove-cols { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 920px) {
+  .grove-cols { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 560px) {
+  .grove-hero { flex-direction: column !important; align-items: flex-start !important; gap: 18px !important; padding: 18px !important; }
+  .grove-hero-actions { width: 100% !important; }
+  .grove-hero-actions > button { flex: 1 1 0 !important; justify-content: center !important; padding-left: 10px !important; padding-right: 10px !important; }
+  .grove-head { gap: 16px !important; }
+  .grove-head-right { width: 100% !important; }
+  .grove-head-right > button { width: 100% !important; justify-content: center !important; }
+  .grove-browse-meta { gap: 12px !important; }
+  .grove-browse-notes { display: none !important; }
+  .grove-mem-stats { gap: 18px 24px !important; }
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Lume — Read as Thinking</title>
+<link rel="stylesheet" href="lume.css" />
+<style>
+  /* responsive: sidebar on wide, bottom tabs on narrow */
+  @media (max-width: 760px) {
+    .lume-sidebar { display: none !important; }
+    .lume-bottom { display: grid !important; }
+    main { padding-bottom: 76px; }
+    .lume-cols { grid-template-columns: 1fr !important; }
+  }
+  @media (max-width: 920px) {
+    .lume-cols { grid-template-columns: 1fr !important; }
+  }
+  /* ── Browse organizer rail → horizontal scroller on narrow screens ── */
+  @media (max-width: 900px) {
+    .brz-layout { flex-direction: column !important; gap: 20px !important; }
+    .brz-main { width: 100% !important; min-width: 0 !important; max-width: 100% !important; }
+    .brz-rail { width: 100% !important; }
+    .brz-rail-group { margin-top: 0 !important; }
+    .brz-rail-group + .brz-rail-group { margin-top: 14px !important; }
+    .brz-list { display: flex !important; flex-direction: row !important; gap: 8px !important; overflow-x: auto !important; padding-bottom: 6px !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .brz-list::-webkit-scrollbar { display: none; }
+    .brz-rail-lbl { display: none !important; }
+    .brz-railitem, .brz-newcoll { width: auto !important; flex: none !important; white-space: nowrap; border: 1px solid var(--line) !important; background: var(--surface) !important; }
+    .brz-railitem > span:nth-child(2) { overflow: visible !important; }
+  }
+  @media (max-width: 560px) {
+    .brz-sel-lbl { display: none !important; }
+    .brz-row-topics, .brz-row-status { display: none !important; }
+    .brz-ask-lbl { display: none !important; }
+    .brz-ask-btn { padding: 10px !important; }
+  }
+  /* ── Phone refinements ─────────────────────────────────── */
+  @media (max-width: 560px) {
+    /* Continue-reading hero: stack cover above text, full-width actions */
+    .lume-hero { flex-direction: column !important; align-items: flex-start !important; gap: 18px !important; padding: 18px !important; }
+    .lume-hero-actions { width: 100% !important; }
+    .lume-hero-actions > button { flex: 1 1 0 !important; justify-content: center !important; padding-left: 10px !important; padding-right: 10px !important; }
+    /* Screen-header action (e.g. Cards "Study due") goes full width */
+    .lume-head { gap: 16px !important; }
+    .lume-head-right { width: 100% !important; }
+    .lume-head-right > button { width: 100% !important; justify-content: center !important; }
+    /* Browse rows: trim the metadata cluster so titles breathe */
+    .lume-browse-meta { gap: 12px !important; }
+    .lume-browse-notes { display: none !important; }
+    /* Memory header stats wrap cleanly */
+    .lume-mem-stats { gap: 18px 24px !important; }
+  }
+  .hover-lift { transition: transform 0.22s cubic-bezier(0.2,0.7,0.2,1), box-shadow 0.22s; }
+  .hover-lift:hover { transform: translateY(-3px); }
+  .row-hover { transition: background 0.15s; }
+  .row-hover:hover { background: var(--surface-2) !important; }
+  @keyframes lumeDrawerIn { from { transform: translateX(101%); } to { transform: translateX(0); } }
+  input::placeholder, textarea::placeholder { color: var(--ink-3); opacity: 0.8; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#E9EAF3"/>
+    <circle cx="50" cy="42" r="15" fill="none" stroke="#4B45D1" stroke-width="3"/>
+    <line x1="50" y1="20" x2="50" y2="25" stroke="#4B45D1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="50" y1="59" x2="50" y2="64" stroke="#4B45D1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="28" y1="42" x2="33" y2="42" stroke="#4B45D1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="67" y1="42" x2="72" y2="42" stroke="#4B45D1" stroke-width="3" stroke-linecap="round"/>
+    <text x="50" y="84" font-family="Georgia, serif" font-size="13" fill="#1F2138" text-anchor="middle">Lume</text>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="lume-data.jsx"></script>
+<script type="text/babel" src="lume-icons.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="lume-home.jsx"></script>
+<script type="text/babel" src="lume-detail.jsx"></script>
+<script type="text/babel" src="lume-browse.jsx"></script>
+<script type="text/babel" src="lume-discover.jsx"></script>
+<script type="text/babel" src="lume-papers.jsx"></script>
+<script type="text/babel" src="lume-bookpage.jsx"></script>
+<script type="text/babel" src="lume-study.jsx"></script>
+<script type="text/babel" src="lume-review.jsx"></script>
+<script type="text/babel" src="lume-reader.jsx"></script>
+<script type="text/babel" src="lume-reader-tools.jsx"></script>
+<script type="text/babel" src="lume-ai.jsx"></script>
+<script type="text/babel" src="lume-app.jsx"></script>
+</body>
+</html>
