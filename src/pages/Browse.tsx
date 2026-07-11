@@ -2,7 +2,7 @@
  *  manage collections; act on individual books. */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as api from '../lib/api';
+import { api } from '../lib/data';
 import { useStore } from '../lib/store';
 import type { LibraryBook } from '../lib/types';
 import { Cover, I } from '../components/icons';

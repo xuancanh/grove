@@ -2,7 +2,7 @@
  *  answer from your highlights with cited sources. */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { aiSearch } from '../lib/api';
+import { api } from '../lib/data';
 import type { SearchResult } from '../lib/types';
 import { I } from '../components/icons';
 import { ScreenHead, card, fieldStyle, linkBtn, wrap } from '../components/ui';
@@ -27,7 +27,7 @@ export default function SearchPage() {
     setError('');
     setResult(null);
     try {
-      setResult(await aiSearch(question));
+      setResult(await api.aiSearch(question));
       const next = [question, ...recent.filter((r) => r !== question)].slice(0, 6);
       setRecent(next);
       localStorage.setItem(RECENT_KEY, JSON.stringify(next));

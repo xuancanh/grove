@@ -9,32 +9,45 @@ passages you have marked.
 Grove is a companion app to [Knowledge Loom](https://github.com/xuancanh/knowledgeloom)
 — one account, one subscription, one backend.
 
-> **⚠️ This repo is the frontend only.** The Grove API is part of the
-> private Knowledge Loom enterprise backend (served under `/api/grove`),
-> so this app is **not self-hostable** — the source is public for
-> transparency and reuse of the UI, not as a runnable product. If you're
-> looking for something to self-host, Knowledge Loom's core is
-> source-available.
+Grove is **offline-first**: by default it needs no login and no server.
+The bundled public-domain catalog, your library, highlights, cards, and
+reading rhythm all live in IndexedDB on the device; text import runs
+locally; AI features work by calling your own provider (key set in
+Settings) directly. The same codebase ships as web/PWA and as native
+iOS/Android apps via **Capacitor**.
 
-## Stack
+## Modes
 
-React 19 + TypeScript + Vite SPA, react-router, Supabase auth (shared
-session with Knowledge Loom — one login works in both apps).
+| Mode | How | Auth | Data |
+|---|---|---|---|
+| **Offline (default)** | `npm run dev` / the Capacitor app | none | IndexedDB (Dexie), `src/lib/data/local.ts` |
+| Server | build with `VITE_GROVE_SERVER=1` | Supabase (shared with Knowledge Loom) | hosted `/api/grove` on the enterprise backend |
+
+Pages talk only to the `DataProvider` in `src/lib/data/` — the local and
+remote implementations mirror each other (see
+`docs/OFFLINE_ARCHITECTURE.md`).
+
+## Cards & learning
+
+Recall cards use **FSRS-4.5** — the same scheduler, data model, and review
+UX as Knowledge Loom's flashcards (grade Forgot / Tricky / Easy, flip-card
+session with keyboard + swipe, session summary). The scheduler file is
+shared verbatim between Loom, grove-server, and this app.
 
 ## Develop
 
 ```bash
 npm install
-GROVE_API=http://localhost:8787 npm run dev   # Vite on :5175, /api proxied
+npm run dev            # offline mode on :5175 — no backend needed
+npm test               # LocalProvider end-to-end under fake-indexeddb
+
+# Native shells (Capacitor)
+npm run ios            # build web → cap sync → open Xcode
+npm run android        # build web → cap sync → open Android Studio
+
+# Server mode (hosted backend)
+VITE_GROVE_SERVER=1 GROVE_API=http://localhost:8787 npm run dev
 ```
-
-Point `GROVE_API` at a running Knowledge Loom enterprise backend
-(`knowledge-loom-ee`: `npm start`), which mounts the Grove API. Without
-auth configured the backend runs in local single-user mode and no login is
-required.
-
-Auth env (production): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` —
-the same Supabase project as Knowledge Loom.
 
 ## What's inside
 

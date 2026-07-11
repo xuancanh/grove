@@ -1,7 +1,7 @@
 /** AI reading companion — sheet (bottom) or drawer (right) surface.
  *  Streams responses from /api/ai/chat, grounded in the current book/chapter. */
 import { useEffect, useRef, useState } from 'react';
-import { aiChatStream, fetchAiStatus } from '../lib/api';
+import { api } from '../lib/data';
 import type { ChatMessage } from '../lib/types';
 import { I } from './icons';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +39,7 @@ export function AICompanion({
 
   useEffect(() => {
     if (!open) return;
-    fetchAiStatus().then((s) => setConfigured(s.configured)).catch(() => setConfigured(false));
+    api.fetchAiStatus().then((s) => setConfigured(s.configured)).catch(() => setConfigured(false));
   }, [open]);
 
   // When invoked with a passage, prefill the composer.
@@ -62,7 +62,7 @@ export function AICompanion({
     setMessages([...next, { role: 'assistant', content: '' }]);
     setBusy(true);
     try {
-      await aiChatStream(
+      await api.aiChatStream(
         { bookId: initial?.bookId, chapterNo: initial?.chapterNo, messages: next },
         (chunk) =>
           setMessages((m) => {

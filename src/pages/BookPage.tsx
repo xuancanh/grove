@@ -2,7 +2,7 @@
  *  book's memory (tag distribution + saved passages). */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import * as api from '../lib/api';
+import { api } from '../lib/data';
 import type { BookDetail, Highlight } from '../lib/types';
 import { useStore } from '../lib/store';
 import { Cover, I, TagDot } from '../components/icons';

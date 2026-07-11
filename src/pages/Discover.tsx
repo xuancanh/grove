@@ -1,7 +1,7 @@
 /** Discover: the shared public-domain catalog + upload your own book. */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as api from '../lib/api';
+import { api } from '../lib/data';
 import { useStore } from '../lib/store';
 import type { Book } from '../lib/types';
 import { Cover, I } from '../components/icons';

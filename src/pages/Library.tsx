@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../lib/store';
-import { fetchHighlights, fetchRhythm } from '../lib/api';
+import { api } from '../lib/data';
 import type { Highlight, LibraryBook, Rhythm } from '../lib/types';
 import { Cover, Glyph, I } from '../components/icons';
 import { ScreenHead, wrap, card, sectionH, shelfGrid, primaryBtn, secondaryBtn, linkBtn, Empty } from '../components/ui';
@@ -14,8 +14,8 @@ export default function Library() {
   const [notes, setNotes] = useState<Highlight[]>([]);
 
   useEffect(() => {
-    fetchRhythm().then(setRhythm).catch(() => {});
-    fetchHighlights().then(setNotes).catch(() => {});
+    api.fetchRhythm().then(setRhythm).catch(() => {});
+    api.fetchHighlights().then(setNotes).catch(() => {});
   }, []);
 
   const cont = useMemo(() => {

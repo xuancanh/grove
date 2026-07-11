@@ -3,7 +3,7 @@
  *  modes, AI thread digest, dictionary lookup, and reading-time logging. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import * as api from '../lib/api';
+import { api } from '../lib/data';
 import type { BookDetail, ChapterContent, Highlight } from '../lib/types';
 import { Glyph, I } from '../components/icons';
 import { useStore } from '../lib/store';

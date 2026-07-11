@@ -99,6 +99,11 @@ export interface Card {
   repetitions: number;
   nextReviewAt: string | null;
   lastRating: string | null;
+  // FSRS-4.5 memory state (same model as Knowledge Loom flashcards)
+  stability?: number;
+  difficulty?: number;
+  lapses?: number;
+  lastReviewAt?: string | null;
 }
 
 export interface Rhythm {

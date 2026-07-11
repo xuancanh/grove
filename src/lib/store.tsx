@@ -13,7 +13,7 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import * as api from './api';
+import { api, serverMode } from './data';
 import type { LibraryState, Settings } from './types';
 
 const DEFAULT_SETTINGS: Settings = {
@@ -49,7 +49,7 @@ interface Store {
 const StoreContext = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const authEnabled = !!supabase;
+  const authEnabled = serverMode && !!supabase;
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!authEnabled);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);

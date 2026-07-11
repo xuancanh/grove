@@ -1,7 +1,10 @@
-/** Study hub: Notes (thought layer), Cards (deck), Review (SM-2 session). */
-import { useEffect, useMemo, useState } from 'react';
+/** Study hub: Notes (thought layer), Cards (deck), Review (FSRS session — UX from Knowledge Loom). */
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as api from '../lib/api';
+import { api } from '../lib/data';
+import { useReviewSession } from '../hooks/useReviewSession';
+import { ReviewSessionView } from '../components/review/ReviewSession';
+import { ReviewDone } from '../components/review/ReviewDone';
 import type { Card, Highlight } from '../lib/types';
 import { CARD_STATUS, Glyph, I, TagDot, TAGS } from '../components/icons';
 import { Empty, ScreenHead, Toast, card as cardStyle, chip, linkBtn, primaryBtn, wrap } from '../components/ui';
@@ -193,102 +196,26 @@ function Cards() {
   );
 }
 
-// ── Review session (SM-2) ──────────────────────────────────────────────────
-const RATINGS: ['again' | 'hard' | 'good' | 'easy', string, string][] = [
-  ['again', 'Again', 'var(--tag-beautiful)'],
-  ['hard', 'Hard', 'var(--tag-question)'],
-  ['good', 'Good', 'var(--tag-important)'],
-  ['easy', 'Easy', 'var(--tag-idea)'],
-];
-
+// ── Review session — FSRS-4.5, UX replicated from Knowledge Loom ──────────
 function Review() {
-  const [queue, setQueue] = useState<Card[]>([]);
-  const [idx, setIdx] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [doneCount, setDoneCount] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [toast, setToast] = useState('');
+  const session = useReviewSession();
 
-  useEffect(() => {
-    api.fetchCards().then((cards) => {
-      setQueue(cards.filter((c) => c.status === 'due' || c.status === 'new' || c.status === 'learning'));
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
-  }, []);
-
-  const current = queue[idx];
-
-  const rate = async (rating: 'again' | 'hard' | 'good' | 'easy') => {
-    if (!current) return;
-    api.reviewCard(current.id, rating).catch(() => {});
-    setDoneCount((d) => d + 1);
-    setRevealed(false);
-    setIdx((i) => i + 1);
-    if (rating === 'again') setToast('Scheduled for tomorrow');
-    setTimeout(() => setToast(''), 1500);
-  };
+  if (session.loaded && session.queue.length === 0) {
+    return (
+      <div className="grove-enter rv-wrap" style={{ ...wrap, paddingTop: 30 }}>
+        <ScreenHead title="Review" />
+        <Empty icon={<I.check size={30} />} title="Nothing due" sub="Cards you create will queue here when it's time to review them." />
+      </div>
+    );
+  }
 
   return (
-    <div className="grove-enter" style={{ ...wrap, paddingTop: 30, maxWidth: 720 }}>
-      <ScreenHead
-        title="Review"
-        sub={loaded && queue.length === 0 ? undefined : 'Rate each card by how easily it came back to you. Spacing does the rest.'}
-      />
-      {loaded && queue.length === 0 ? (
-        <Empty icon={<I.check size={30} />} title="Nothing due" sub="Cards you create will queue here when it's time to review them." />
-      ) : !current ? (
-        <Empty
-          icon={<I.check size={30} />}
-          title={`Session complete — ${doneCount} card${doneCount === 1 ? '' : 's'} reviewed`}
-          sub="Come back tomorrow; the schedule adapts to each answer."
-        />
+    <div className="grove-enter rv-wrap" style={{ ...wrap, paddingTop: 30 }}>
+      {session.finished ? (
+        <ReviewDone total={session.queue.length} counts={session.counts} onRestart={session.restart} />
       ) : (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-            <div style={{ flex: 1, height: 5, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(idx / queue.length) * 100}%`, background: 'var(--accent)', transition: 'width 0.3s' }} />
-            </div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-3)' }}>{idx + 1} / {queue.length}</span>
-          </div>
-
-          <div style={{ ...cardStyle, padding: 30 }}>
-            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>{current.bookTitle}{current.chapterTitle ? ` · ${current.chapterTitle}` : ''}</div>
-            <div style={{ fontFamily: 'var(--read)', fontSize: 23, lineHeight: 1.4, fontWeight: 500 }}>{current.front}</div>
-            {revealed ? (
-              <div className="grove-enter" style={{ marginTop: 22, paddingTop: 22, borderTop: '1px solid var(--line)' }}>
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Answer</div>
-                <div style={{ fontFamily: 'var(--read)', fontSize: 18, lineHeight: 1.55 }}>{current.back}</div>
-                {current.source && (
-                  <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 14, fontStyle: 'italic' }}>“{current.source}”</div>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          {revealed ? (
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              {RATINGS.map(([value, label, color]) => (
-                <button
-                  key={value}
-                  onClick={() => rate(value)}
-                  style={{
-                    flex: 1, padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600,
-                    border: `1px solid color-mix(in srgb, ${color} 40%, var(--line))`,
-                    background: `color-mix(in srgb, ${color} 12%, transparent)`, color,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <button onClick={() => setRevealed(true)} style={{ ...primaryBtn, width: '100%', justifyContent: 'center', marginTop: 18 }}>
-              Reveal answer
-            </button>
-          )}
-        </div>
+        <ReviewSessionView session={session} />
       )}
-      {toast && <Toast message={toast} />}
     </div>
   );
 }

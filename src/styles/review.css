@@ -1,0 +1,78 @@
+/* Review session — FSRS study UX replicated from Knowledge Loom's flashcards.
+   Follows Loom's convention: one stylesheet per feature, class-based. */
+
+.rv-wrap { max-width: 720px; }
+
+/* top bar */
+.rv-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.rv-track { flex: 1; height: 5px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.rv-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+.rv-count { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.rv-live { display: flex; gap: 6px; font-size: 11.5px; font-family: var(--mono); }
+.rv-lc { padding: 2px 8px; border-radius: 10px; }
+
+/* card stage: ghost stack + 3D flip */
+.rv-stage { position: relative; perspective: 1400px; }
+.rv-ghost { position: absolute; inset: 0; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.rv-g1 { transform: translateY(10px) scale(0.97); opacity: 0.6; }
+.rv-g2 { transform: translateY(19px) scale(0.94); opacity: 0.3; }
+.rv-scene { position: relative; }
+.rv-slide-left { animation: rvSlideLeft 0.28s both; }
+.rv-slide-right { animation: rvSlideRight 0.28s both; }
+@keyframes rvSlideLeft { from { transform: translateX(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rvSlideRight { from { transform: translateX(-36px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.rv-card { position: relative; min-height: 300px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0.1, 0.2, 1); }
+.rv-card.rv-flipped { transform: rotateY(180deg); cursor: default; }
+.rv-face {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px;
+  padding: 26px 28px; border-radius: 18px; background: var(--surface);
+  border: 1px solid var(--line); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.35);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.rv-back { transform: rotateY(180deg); background: color-mix(in srgb, var(--accent) 5%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 20%, var(--line)); }
+
+.rv-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
+.rv-next { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.rv-next.rv-due { color: var(--accent); }
+.rv-prompt-area { flex: 1; display: flex; align-items: center; }
+.rv-prompt { font-family: var(--read); font-size: 23px; line-height: 1.4; font-weight: 500; }
+.rv-foot { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-3); }
+.rv-sr { font-family: var(--mono); }
+.rv-back-q { font-size: 13.5px; color: var(--ink-2); font-weight: 500; }
+.rv-sep { height: 1px; background: var(--line); margin: 12px 0; }
+.rv-answer-scroll { flex: 1; overflow: auto; }
+.rv-answer { font-family: var(--read); font-size: 18px; line-height: 1.55; }
+.rv-source { font-size: 13px; color: var(--ink-3); margin-top: 14px; font-style: italic; }
+
+/* actions */
+.rv-actions { margin-top: 18px; }
+.rv-prev-badge { font-size: 12px; color: var(--ink-3); margin-bottom: 8px; text-align: center; }
+.rv-rate-prompt { display: block; text-align: center; font-size: 12.5px; color: var(--ink-3); margin-bottom: 10px; }
+.rv-rate-row { display: flex; gap: 10px; }
+.rv-rate {
+  flex: 1; padding: 13px 0; border-radius: 12px; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--rate-color) 40%, var(--line));
+  background: color-mix(in srgb, var(--rate-color) 12%, transparent); color: var(--rate-color);
+}
+.rv-rate kbd { font-size: 10px; opacity: 0.7; }
+
+/* nav row */
+.rv-nav { display: flex; justify-content: space-between; margin-top: 16px; font-size: 12.5px; }
+.rv-nav-hint { color: var(--ink-3); }
+
+/* done screen */
+.rv-done { padding: 36px; text-align: center; }
+.rv-done-star { font-size: 28px; color: var(--accent); margin-bottom: 10px; }
+.rv-done h2 { font-family: var(--read); font-size: 26px; margin-bottom: 8px; }
+.rv-done-sub { font-size: 14px; color: var(--ink-2); margin-bottom: 22px; }
+.rv-breakdown { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+.rv-cell {
+  flex: 1; max-width: 130px; padding: 14px 0; border-radius: 12px;
+  background: color-mix(in srgb, var(--rate-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rate-color) 30%, var(--line));
+}
+.rv-cell b { display: block; font-size: 22px; color: var(--rate-color); }
+.rv-cell span { font-size: 12px; color: var(--ink-2); }
+.rv-summary { font-size: 13.5px; color: var(--ink-2); margin-bottom: 22px; }
