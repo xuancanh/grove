@@ -9,26 +9,39 @@ import { Glyph, I } from '../components/icons';
 import { useStore } from '../lib/store';
 import type { AiInit } from '../components/AICompanion';
 
-interface ReadMode {
-  name: string;
-  icon: string;
-  measure: number;
-  size: number;
-  leading: number;
-  font: string;
-  track: string;
-  dark?: boolean;
-  dim?: boolean;
-  justify?: boolean;
+/**
+ * Reading options — independent axes (the model Knowledge Loom uses for its
+ * reading mode), not exclusive presets: any theme can combine with any font,
+ * width, focus dimming, or justification. Each axis persists on the device.
+ */
+interface ReadPrefs {
+  theme: 'app' | 'white' | 'night';
+  font: 'serif' | 'sans';
+  width: 'narrow' | 'medium' | 'wide';
+  size: number;       // multiplier, 0.8–1.5
+  lineHeight: number; // absolute, 1.3–2.2
+  dim: boolean;       // focus: dim all but the active paragraph
+  justify: boolean;   // justified text + hyphenation
 }
 
-const READ_MODES: Record<string, ReadMode> = {
-  classic: { name: 'Classic', icon: 'book', measure: 34, size: 1.0, leading: 1.62, font: 'var(--read)', track: '0' },
-  focus: { name: 'Focus', icon: 'focus', measure: 30, size: 1.04, leading: 1.7, font: 'var(--read)', track: '0', dim: true },
-  night: { name: 'Night', icon: 'moon', measure: 34, size: 1.0, leading: 1.66, font: 'var(--read)', track: '0', dark: true },
-  academic: { name: 'Academic', icon: 'contents', measure: 40, size: 0.92, leading: 1.9, font: 'var(--read)', track: '0', justify: true },
-  dyslexia: { name: 'Dyslexia', icon: 'type', measure: 30, size: 1.06, leading: 1.95, font: "'Hanken Grotesk', sans-serif", track: '0.03em' },
+const READ_WIDTHS: Record<ReadPrefs['width'], number> = { narrow: 30, medium: 34, wide: 40 };
+const READ_FONTS: Record<ReadPrefs['font'], { family: string; track: string }> = {
+  serif: { family: 'var(--read)', track: '0' },
+  sans: { family: "'Hanken Grotesk', sans-serif", track: '0.03em' }, // dyslexia-friendly
 };
+const PREFS_KEY = 'grove:read-prefs';
+
+function loadReadPrefs(fallbackSize: number): ReadPrefs {
+  const defaults: ReadPrefs = {
+    theme: 'app', font: 'serif', width: 'medium',
+    size: fallbackSize || 1.0, lineHeight: 1.65, dim: false, justify: false,
+  };
+  try {
+    return { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') };
+  } catch {
+    return defaults;
+  }
+}
 
 const TAG_LIST: [string, string][] = [
   ['beautiful', 'Beautiful'],
@@ -45,15 +58,20 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
   const [book, setBook] = useState<BookDetail | null>(null);
   const [content, setContent] = useState<ChapterContent | null>(null);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('classic');
+  const [prefs, setPrefsState] = useState<ReadPrefs>(() => loadReadPrefs(settings.readerSize || 1.0));
+  const setPref = <K extends keyof ReadPrefs>(key: K, value: ReadPrefs[K]) => {
+    setPrefsState((prev) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
   const [digest, setDigest] = useState<null | 'thread'>(null);
   const [thread, setThread] = useState<{ beats: string[]; summary: string } | null>(null);
   const [threadBusy, setThreadBusy] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
   const [showType, setShowType] = useState(false);
   const [showTOC, setShowTOC] = useState(false);
-  const [typeSize, setTypeSize] = useState(settings.readerSize || 1.0);
-  const [leadingAdj, setLeadingAdj] = useState(0);
   const [focusPara, setFocusPara] = useState(1);
   const [sel, setSel] = useState<{ p: number; s: number; bottom: number; endP?: number; endS?: number } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
@@ -99,9 +117,9 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
     return () => clearInterval(t);
   }, [bookId]);
 
-  const M = READ_MODES[mode];
-  const isDark = !!M.dark;
-  const fsize = M.size * typeSize;
+  const isDark = prefs.theme === 'night';
+  const readFont = READ_FONTS[prefs.font];
+  const fsize = prefs.size;
   const highlights = content?.highlights ?? [];
 
   const hlFor = useCallback(
@@ -306,9 +324,11 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
     navigate(`/book/${bookId}`);
   };
 
-  const pageStyle = isDark
+  const pageStyle = prefs.theme === 'night'
     ? { background: '#15171A', color: '#D8D2C6' }
-    : { background: 'var(--page)', color: 'var(--ink)' };
+    : prefs.theme === 'white'
+      ? { background: '#FFFFFF', color: '#1D1D1B' }
+      : { background: 'var(--page)', color: 'var(--ink)' };
 
   if (error) {
     return (
@@ -388,41 +408,56 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
 
         {showType && (
           <div className="grove-enter grove-scroll" style={{ ...popover(isDark), maxHeight: '74vh', overflowY: 'auto' }}>
-            <div className="eyebrow" style={{ marginBottom: 12 }}>Reading mode</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {Object.entries(READ_MODES).map(([k, m]) => {
-                const on = k === mode && !digest;
-                return (
-                  <button
-                    key={k}
-                    onClick={() => { setMode(k); setDigest(null); }}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 9,
-                      padding: 12, borderRadius: 12, textAlign: 'left',
-                      border: `1px solid ${on ? 'var(--accent)' : isDark ? 'rgba(255,255,255,0.1)' : 'var(--line)'}`,
-                      background: on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                      color: 'inherit',
-                    }}
-                  >
-                    <Glyph name={m.icon} size={20} style={{ color: on ? 'var(--accent)' : 'inherit', opacity: on ? 1 : 0.7 }} />
-                    <span style={{ fontSize: 13, fontWeight: on ? 600 : 500 }}>{m.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <div className="eyebrow" style={{ marginBottom: 12 }}>Reading options</div>
+            <SegRow
+              label="Theme"
+              options={[['app', 'Paper'], ['white', 'White'], ['night', 'Night']]}
+              value={prefs.theme}
+              onChange={(v) => setPref('theme', v as ReadPrefs['theme'])}
+              isDark={isDark}
+            />
+            <SegRow
+              label="Font"
+              options={[['serif', 'Serif'], ['sans', 'Sans']]}
+              value={prefs.font}
+              onChange={(v) => setPref('font', v as ReadPrefs['font'])}
+              isDark={isDark}
+            />
+            <SegRow
+              label="Width"
+              options={[['narrow', 'Narrow'], ['medium', 'Medium'], ['wide', 'Wide']]}
+              value={prefs.width}
+              onChange={(v) => setPref('width', v as ReadPrefs['width'])}
+              isDark={isDark}
+            />
             <div className="eyebrow" style={{ margin: '18px 0 12px' }}>Typography</div>
             <Stepper
               label="Type size"
-              value={`${Math.round(fsize * 100)}%`}
-              onMinus={() => setTypeSize((v) => Math.max(0.8, +(v - 0.05).toFixed(2)))}
-              onPlus={() => setTypeSize((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+              value={`${Math.round(prefs.size * 100)}%`}
+              onMinus={() => setPref('size', Math.max(0.8, +(prefs.size - 0.05).toFixed(2)))}
+              onPlus={() => setPref('size', Math.min(1.5, +(prefs.size + 0.05).toFixed(2)))}
               isDark={isDark}
             />
             <Stepper
               label="Line height"
-              value={(M.leading + leadingAdj).toFixed(2)}
-              onMinus={() => setLeadingAdj((v) => Math.max(-0.3, +(v - 0.05).toFixed(2)))}
-              onPlus={() => setLeadingAdj((v) => Math.min(0.5, +(v + 0.05).toFixed(2)))}
+              value={prefs.lineHeight.toFixed(2)}
+              onMinus={() => setPref('lineHeight', Math.max(1.3, +(prefs.lineHeight - 0.05).toFixed(2)))}
+              onPlus={() => setPref('lineHeight', Math.min(2.2, +(prefs.lineHeight + 0.05).toFixed(2)))}
+              isDark={isDark}
+            />
+            <div className="eyebrow" style={{ margin: '18px 0 12px' }}>Behavior</div>
+            <ToggleRow
+              label="Focus"
+              hint="Dim everything but the paragraph you're on"
+              on={prefs.dim}
+              onChange={(v) => setPref('dim', v)}
+              isDark={isDark}
+            />
+            <ToggleRow
+              label="Justify"
+              hint="Justified text with hyphenation"
+              on={prefs.justify}
+              onChange={(v) => setPref('justify', v)}
               isDark={isDark}
             />
           </div>
@@ -485,7 +520,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
           isDark={isDark}
         />
       ) : (
-        <div style={{ maxWidth: `${M.measure}rem`, margin: '0 auto', padding: '56px 28px 200px' }}>
+        <div style={{ maxWidth: `${READ_WIDTHS[prefs.width]}rem`, margin: '0 auto', padding: '56px 28px 200px' }}>
           <div style={{ marginBottom: 44, animation: 'groveFade 0.6s both' }}>
             <div className="eyebrow" style={{ color: 'var(--accent)', marginBottom: 14 }}>Chapter {chapterNo}</div>
             <h1 style={{ fontFamily: 'var(--read)', fontWeight: 400, fontSize: 'clamp(28px, 5vw, 40px)', lineHeight: 1.12, margin: 0, letterSpacing: '-0.01em' }}>
@@ -497,15 +532,15 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
           </div>
 
           {(content?.paragraphs ?? []).map((para, p) => {
-            const dimmed = M.dim && p !== focusPara;
+            const dimmed = prefs.dim && p !== focusPara;
             return (
               <p
                 key={p}
-                onMouseEnter={() => M.dim && setFocusPara(p)}
+                onMouseEnter={() => prefs.dim && setFocusPara(p)}
                 style={{
-                  fontFamily: M.font, fontSize: `${fsize * 20}px`,
-                  lineHeight: M.leading + leadingAdj, letterSpacing: M.track,
-                  textAlign: M.justify ? 'justify' : 'left', hyphens: M.justify ? 'auto' : 'none',
+                  fontFamily: readFont.family, fontSize: `${fsize * 20}px`,
+                  lineHeight: prefs.lineHeight, letterSpacing: readFont.track,
+                  textAlign: prefs.justify ? 'justify' : 'left', hyphens: prefs.justify ? 'auto' : 'none',
                   margin: '0 0 1.5em', color: 'inherit',
                   opacity: dimmed ? 0.32 : 1, transition: 'opacity 0.4s ease',
                 }}
@@ -746,6 +781,69 @@ function ThreadView({ title, chapterNo, thread, busy, isDark }: { title: string;
         </>
       )}
     </div>
+  );
+}
+
+/** Small segmented control row — the Loom reading-toolbar pattern. */
+function SegRow({ label, options, value, onChange, isDark }: {
+  label: string; options: [string, string][]; value: string;
+  onChange: (v: string) => void; isDark: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+      <span style={{ fontSize: 13, width: 74, color: isDark ? '#B9B3A6' : 'var(--ink-2)' }}>{label}</span>
+      <div style={{ display: 'flex', flex: 1, gap: 4, padding: 3, borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.06)' : 'var(--surface-2)' }}>
+        {options.map(([v, l]) => {
+          const on = v === value;
+          return (
+            <button
+              key={v}
+              onClick={() => onChange(v)}
+              style={{
+                flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', fontSize: 12.5,
+                fontWeight: on ? 600 : 500,
+                background: on ? (isDark ? 'rgba(255,255,255,0.12)' : 'var(--surface)') : 'transparent',
+                color: on ? (isDark ? '#E6E2D8' : 'var(--ink)') : (isDark ? '#8A857A' : 'var(--ink-2)'),
+                boxShadow: on ? '0 1px 3px rgba(0,0,0,0.14)' : 'none',
+              }}
+            >
+              {l}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Labeled on/off row with a hint. */
+function ToggleRow({ label, hint, on, onChange, isDark }: {
+  label: string; hint: string; on: boolean; onChange: (v: boolean) => void; isDark: boolean;
+}) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginBottom: 8,
+        padding: '9px 10px', borderRadius: 10, textAlign: 'left', color: 'inherit',
+        border: `1px solid ${on ? 'var(--accent)' : isDark ? 'rgba(255,255,255,0.1)' : 'var(--line)'}`,
+        background: on ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+      }}
+    >
+      <span style={{ flex: 1 }}>
+        <span style={{ display: 'block', fontSize: 13, fontWeight: 600 }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 11.5, color: isDark ? '#8A857A' : 'var(--ink-3)', marginTop: 2 }}>{hint}</span>
+      </span>
+      <span
+        style={{
+          width: 34, height: 20, borderRadius: 12, flex: 'none', position: 'relative',
+          background: on ? 'var(--accent)' : isDark ? 'rgba(255,255,255,0.14)' : 'var(--line-2)',
+          transition: 'background 0.2s',
+        }}
+      >
+        <span style={{ position: 'absolute', top: 2, left: on ? 16 : 2, width: 16, height: 16, borderRadius: 9, background: '#fff', transition: 'left 0.2s' }} />
+      </span>
+    </button>
   );
 }
 
