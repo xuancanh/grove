@@ -50,26 +50,14 @@ test('highlights: create, enrich, patch, list by book', async () => {
   assert.equal((await api.fetchHighlights(walden.id)).length, 1);
 });
 
-test('cards: FSRS review grows intervals; again lapses to 1 day', async () => {
-  const walden = (await api.fetchCatalog()).find((b) => b.title === 'Walden')!;
-  const card = await api.createCard({ bookId: walden.id, front: 'Why the woods?', back: 'To live deliberately.' });
-  assert.equal(card.status, 'new');
-
-  await api.reviewCard(card.id, 'good');
-  const cards = await api.fetchCards();
-  let c = cards.find((x) => x.id === card.id)!;
-  assert.ok(c.repetitions === 1 && c.intervalDays >= 1);
-  assert.ok((c.stability ?? 0) > 0, 'FSRS stability set');
-  const firstInterval = c.intervalDays;
-
-  await api.reviewCard(card.id, 'good');
-  c = (await api.fetchCards()).find((x) => x.id === card.id)!;
-  assert.ok(c.intervalDays >= firstInterval, 'interval does not shrink on good');
-
-  await api.reviewCard(card.id, 'again');
-  c = (await api.fetchCards()).find((x) => x.id === card.id)!;
-  assert.equal(c.intervalDays, 1, 'lapse schedules tomorrow');
-  assert.equal(c.lastRating, 'again');
+test('cards & AI are account features: local mode refuses them', async () => {
+  assert.deepEqual(await api.fetchCards(), []);
+  await assert.rejects(() => api.createCard({ bookId: 'x', front: 'f', back: 'b' }), /account/);
+  await assert.rejects(() => api.reviewCard('x', 'good'), /account/);
+  await assert.rejects(() => api.aiSearch('q'), /account/);
+  await assert.rejects(() => api.aiThread('x', 1), /account/);
+  const status = await api.fetchAiStatus();
+  assert.equal(status.configured, false);
 });
 
 test('sessions: rhythm aggregates today', async () => {
@@ -81,12 +69,10 @@ test('sessions: rhythm aggregates today', async () => {
   assert.equal(rhythm.week.length, 7);
 });
 
-test('settings: ai key stored locally, surfaced as hasAiApiKey', async () => {
-  const s = await api.patchSettings({ aiProvider: 'anthropic', aiApiKey: 'sk-test' });
-  assert.equal(s.hasAiApiKey, true);
-  assert.equal(s.serverAiProvider, 'none');
-  const status = await api.fetchAiStatus();
-  assert.deepEqual({ provider: status.provider, configured: status.configured }, { provider: 'anthropic', configured: true });
+test('settings: reading preferences persist locally', async () => {
+  const s2 = await api.patchSettings({ theme: 'night', dailyGoalMinutes: 45 });
+  assert.equal(s2.theme, 'night');
+  assert.equal(s2.dailyGoalMinutes, 45);
 });
 
 test('import: plain text becomes a private book with chapters', async () => {
@@ -101,25 +87,3 @@ test('import: plain text becomes a private book with chapters', async () => {
   await assert.rejects(() => api.fetchBook(detail.id));
 });
 
-// ── Scheduler parity with Knowledge Loom ─────────────────────────────────────
-// fsrs.ts is byte-identical across Loom, grove-server, and this client
-// (verified by diff in CI-able form below would need the other repos; here we
-// pin the same numeric behaviors Loom's backend-fsrs.test.ts asserts).
-import { fsrsReview } from '../src/lib/fsrs';
-
-test('parity: first good review schedules days out, reps=1, no lapse', () => {
-  const good = fsrsReview(null, 3, 0);
-  assert.ok(good.intervalDays >= 3, `good interval ${good.intervalDays} should be days, not hours`);
-  assert.equal(good.state.reps, 1);
-  assert.equal(good.state.lapses, 0);
-  const again = fsrsReview(null, 1, 0);
-  assert.equal(again.intervalDays, 1);
-  assert.equal(again.state.lapses, 1);
-});
-
-test('parity: hard never schedules further than good', () => {
-  const base = fsrsReview(null, 3, 0);
-  const afterGood = fsrsReview(base.state, 3, base.intervalDays);
-  const afterHard = fsrsReview(base.state, 2, base.intervalDays);
-  assert.ok(afterHard.intervalDays <= afterGood.intervalDays);
-});

@@ -9,19 +9,21 @@ passages you have marked.
 Grove is a companion app to [Knowledge Loom](https://github.com/xuancanh/knowledgeloom)
 — one account, one subscription, one backend.
 
-Grove is **offline-first**: by default it needs no login and no server.
-The bundled public-domain catalog, your library, highlights, cards, and
-reading rhythm all live in IndexedDB on the device; text import runs
-locally; AI features work by calling your own provider (key set in
-Settings) directly. The same codebase ships as web/PWA and as native
-iOS/Android apps via **Capacitor**.
+Grove is **offline-first for reading**: with no login and no server you
+get the full reading experience — the bundled public-domain catalog, your
+own text uploads, highlights & margin notes, collections, and reading
+rhythm, all in IndexedDB on the device. **AI and the learning system
+(recall cards, reviews) are account features**: their logic lives only in
+the backend, and those surfaces appear only in server mode. The same
+codebase ships as web/PWA and as native iOS/Android apps via
+**Capacitor**.
 
 ## Modes
 
 | Mode | How | Auth | Data |
 |---|---|---|---|
-| **Offline (default)** | `npm run dev` / the Capacitor app | none | IndexedDB (Dexie), `src/lib/data/local.ts` |
-| Server | build with `VITE_GROVE_SERVER=1` | Supabase (shared with Knowledge Loom) | hosted `/api/grove` on the enterprise backend |
+| **Offline (default)** | `npm run dev` / the Capacitor app | none | reading + notes only — IndexedDB (Dexie), `src/lib/data/local.ts` |
+| Server | build with `VITE_GROVE_SERVER=1` | Supabase (shared with Knowledge Loom) | everything, incl. AI + cards — hosted `/api/grove` |
 
 Pages talk only to the `DataProvider` in `src/lib/data/` — the local and
 remote implementations mirror each other (see
@@ -31,8 +33,10 @@ remote implementations mirror each other (see
 
 Recall cards use **FSRS-4.5** — the same scheduler, data model, and review
 UX as Knowledge Loom's flashcards (grade Forgot / Tricky / Easy, flip-card
-session with keyboard + swipe, session summary). The scheduler file is
-shared verbatim between Loom, grove-server, and this app.
+session with keyboard + swipe, session summary). The scheduler exists
+exactly once, exported by `@knowledge-loom/server` and imported by
+grove-server; it never ships to the client. Cards & review are
+server-mode features.
 
 ## Develop
 

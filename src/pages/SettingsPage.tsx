@@ -1,6 +1,7 @@
 /** Settings: appearance, reading preferences, AI provider (Intelligence), account. */
 import { useState } from 'react';
 import { useStore } from '../lib/store';
+import { serverMode } from '../lib/data';
 import { I } from '../components/icons';
 import { ScreenHead, Toast, fieldStyle, primaryBtn, secondaryBtn, wrap } from '../components/ui';
 
@@ -144,7 +145,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Intelligence */}
+      {/* Intelligence — AI runs on the backend; offline builds hide it. */}
+      {serverMode && <>
       <div className="eyebrow" style={{ margin: '40px 0 8px' }}>Intelligence</div>
       <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: '0 0 18px' }}>
         Grove's companion, thread digests, card generation, and library search run on the model you choose.
@@ -203,6 +205,8 @@ export default function SettingsPage() {
       <button onClick={saveAi} disabled={savingAi} style={{ ...primaryBtn, opacity: savingAi ? 0.6 : 1 }}>
         {savingAi ? 'Saving…' : 'Save intelligence settings'}
       </button>
+
+      </>}
 
       {/* Account */}
       <div className="eyebrow" style={{ margin: '44px 0 14px' }}>Account</div>

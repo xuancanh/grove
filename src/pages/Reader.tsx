@@ -3,7 +3,7 @@
  *  modes, AI thread digest, dictionary lookup, and reading-time logging. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/data';
+import { api, serverMode } from '../lib/data';
 import type { BookDetail, ChapterContent, Highlight } from '../lib/types';
 import { Glyph, I } from '../components/icons';
 import { useStore } from '../lib/store';
@@ -543,17 +543,19 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
               </div>
               <div style={{ display: 'flex', gap: 6, borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'var(--line)'}`, paddingTop: 10 }}>
                 <button onClick={startNote} style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}><I.note size={17} /> Note</button>
-                <button onClick={makeCard} style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}><I.cards size={17} /> Card</button>
+                {serverMode && <button onClick={makeCard} style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}><I.cards size={17} /> Card</button>}
                 <button onClick={doLookup} style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}><I.book size={17} /> Look up</button>
-                <button
-                  onClick={() => {
-                    openAI({ bookId, chapterNo, passage: content.paragraphs[sel.p]?.sentences[sel.s] });
-                    closeSel();
-                  }}
-                  style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}
-                >
-                  <I.sparkle size={17} /> Ask
-                </button>
+                {serverMode && (
+                  <button
+                    onClick={() => {
+                      openAI({ bookId, chapterNo, passage: content.paragraphs[sel.p]?.sentences[sel.s] });
+                      closeSel();
+                    }}
+                    style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}
+                  >
+                    <I.sparkle size={17} /> Ask
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -622,7 +624,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
       )}
 
       {/* AI SUMMON */}
-      <button
+      {serverMode && <button
         onClick={(e) => { e.stopPropagation(); openAI({ bookId, chapterNo }); }}
         style={{
           position: 'fixed', right: 'max(24px, env(safe-area-inset-right))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
@@ -635,7 +637,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
         title="Ask Grove"
       >
         <I.sparkle size={23} />
-      </button>
+      </button>}
     </div>
   );
 }

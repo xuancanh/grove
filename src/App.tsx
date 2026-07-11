@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from './lib/store';
+import { serverMode } from './lib/data';
 import { Glyph, Logo } from './components/icons';
 import { AICompanion, type AiInit } from './components/AICompanion';
 import Login from './pages/Login';
@@ -19,7 +20,8 @@ const NAV: [string, string, string][] = [
   ['/browse', 'Browse', 'browse'],
   ['/discover', 'Discover', 'compass'],
   ['/study', 'Study', 'layers'],
-  ['/search', 'Search', 'search'],
+  // AI search over highlights is an account feature (backend only).
+  ...(serverMode ? [['/search', 'Search', 'search'] as [string, string, string]] : []),
   ['/settings', 'Settings', 'settings'],
 ];
 
@@ -76,12 +78,14 @@ export default function App() {
 
       {!inReader && <BottomTabs />}
 
-      <AICompanion
-        open={ai.open}
-        initial={ai.init}
-        surface={settings.aiSurface}
-        onClose={() => setAi((a) => ({ ...a, open: false }))}
-      />
+      {serverMode && (
+        <AICompanion
+          open={ai.open}
+          initial={ai.init}
+          surface={settings.aiSurface}
+          onClose={() => setAi((a) => ({ ...a, open: false }))}
+        />
+      )}
     </div>
   );
 }

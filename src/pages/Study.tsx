@@ -1,7 +1,7 @@
 /** Study hub: Notes (thought layer), Cards (deck), Review (FSRS session — UX from Knowledge Loom). */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/data';
+import { api, serverMode } from '../lib/data';
 import { useReviewSession } from '../hooks/useReviewSession';
 import { ReviewSessionView } from '../components/review/ReviewSession';
 import { ReviewDone } from '../components/review/ReviewDone';
@@ -17,12 +17,14 @@ const STUDY_TABS: [string, string, string][] = [
 
 export default function Study() {
   const [tab, setTab] = useState('notes');
+  // Cards & Review (the learning system) run on the backend — hosted app only.
+  const tabs = serverMode ? STUDY_TABS : STUDY_TABS.filter(([k]) => k === 'notes');
   return (
     <div>
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: 'clamp(28px, 5vw, 64px) clamp(20px, 4vw, 48px) 0' }}>
         <div className="eyebrow" style={{ marginBottom: 14, color: 'var(--accent)' }}>Study</div>
-        <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
-          {STUDY_TABS.map(([k, l, ic]) => {
+        <div style={{ display: tabs.length > 1 ? 'inline-flex' : 'none', gap: 4, padding: 4, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+          {tabs.map(([k, l, ic]) => {
             const on = tab === k;
             return (
               <button
@@ -41,8 +43,8 @@ export default function Study() {
         </div>
       </div>
       {tab === 'notes' && <Notes />}
-      {tab === 'cards' && <Cards />}
-      {tab === 'review' && <Review />}
+      {serverMode && tab === 'cards' && <Cards />}
+      {serverMode && tab === 'review' && <Review />}
     </div>
   );
 }

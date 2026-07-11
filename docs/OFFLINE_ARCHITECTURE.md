@@ -1,9 +1,12 @@
 # Grove Offline / Capacitor Architecture
 
-> Review + design record (2026-07). Grove becomes a Capacitor app that works
-> fully offline with **no login and no server**, while keeping the hosted
-> server mode. The card/learning system adopts Knowledge Loom's data model,
-> scheduler, and review UX.
+> Review + design record (2026-07). Grove becomes a Capacitor app whose
+> READING experience works fully offline with **no login and no server**,
+> while keeping the hosted server mode. Scope decision: **offline = read +
+> highlight/note only** — AI and the learning system (cards/review) are
+> account features whose logic lives exclusively in the backend. The
+> card/learning system adopts Knowledge Loom's data model, scheduler, and
+> review UX (server mode).
 
 ## 1. Frontend ↔ server surface review
 
@@ -17,10 +20,10 @@ Offline strategy per group:
 | library | `library` CRUD, status/progress | IndexedDB |
 | collections | create/delete/membership | IndexedDB |
 | highlights | list/create/patch/delete | IndexedDB |
-| cards | list/create/review/delete | IndexedDB + **FSRS-4.5** (see §3) |
+| cards | list/create/review/delete | **server-only** (account feature): local provider refuses, UI hides Cards/Review offline |
 | sessions | `POST sessions`, `sessions/rhythm` | IndexedDB; rhythm computed client-side |
 | settings | get/patch | IndexedDB (single row) |
-| AI | `ai/{status,chat,thread,cards,search}` | **direct-to-provider**: grove-server's `providers.ts` (plain fetch, no SDKs) is ported to the client; works when the user sets a provider+key in Settings. Needs network but **not our server**. On native, CapacitorHttp bypasses CORS; in the browser Anthropic (`anthropic-dangerous-direct-browser-access`) and Gemini allow direct calls, OpenAI generally does not — surfaced in Settings copy. |
+| AI | `ai/{status,chat,thread,cards,search}` | **server-only** (account feature): local provider refuses; the AI companion, Ask buttons, AI search, and Settings→Intelligence render only in server mode |
 
 ## 2. Data layer
 
@@ -45,8 +48,10 @@ the frontend study UX (`src/components/flashcards/`).
 
 Grove changes to match:
 
-- **Scheduler**: SM-2 → **FSRS-4.5** — the identical `fsrs.ts` file, used
-  by the local provider and by grove-server (`POST cards/:id/review`).
+- **Scheduler**: SM-2 → **FSRS-4.5**, existing exactly once: exported from
+  the `@knowledge-loom/server` barrel (where Loom's flashcards already use
+  it) and imported by grove-server. The client never contains scheduling
+  logic; review happens via `POST cards/:id/review` in server mode.
   Existing SM-2 rows are migrated via `seedFromLegacy`.
 - **Data model**: `Card` gains `reviewData { stability, difficulty, reps,
   lapses, intervalDays, nextReviewAt, lastReviewAt, lastRating }` (same

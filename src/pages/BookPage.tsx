@@ -2,7 +2,7 @@
  *  book's memory (tag distribution + saved passages). */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/data';
+import { api, serverMode } from '../lib/data';
 import type { BookDetail, Highlight } from '../lib/types';
 import { useStore } from '../lib/store';
 import { Cover, I, TagDot } from '../components/icons';
@@ -108,12 +108,12 @@ export default function BookPage({ openAI }: { openAI: (init?: AiInit) => void }
             <button onClick={() => navigate(`/read/${bookId}/${resumeChapter}`)} style={primaryBtn}>
               {membership.progress > 0 ? 'Resume reading' : 'Start reading'} <I.arrowRight size={16} />
             </button>
-            <button onClick={generateCards} disabled={busyCards} style={{ ...secondaryBtn, opacity: busyCards ? 0.6 : 1 }}>
+            {serverMode && <button onClick={generateCards} disabled={busyCards} style={{ ...secondaryBtn, opacity: busyCards ? 0.6 : 1 }}>
               <I.sparkle size={16} /> {busyCards ? 'Generating…' : 'Generate cards'}
-            </button>
-            <button onClick={() => openAI({ bookId })} style={secondaryBtn}>
+            </button>}
+            {serverMode && <button onClick={() => openAI({ bookId })} style={secondaryBtn}>
               <I.ask size={16} /> Ask about this book
-            </button>
+            </button>}
           </>
         ) : (
           <button onClick={addBook} style={primaryBtn}>
