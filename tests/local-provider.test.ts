@@ -100,3 +100,26 @@ test('import: plain text becomes a private book with chapters', async () => {
   await api.deleteBook(detail.id);
   await assert.rejects(() => api.fetchBook(detail.id));
 });
+
+// ── Scheduler parity with Knowledge Loom ─────────────────────────────────────
+// fsrs.ts is byte-identical across Loom, grove-server, and this client
+// (verified by diff in CI-able form below would need the other repos; here we
+// pin the same numeric behaviors Loom's backend-fsrs.test.ts asserts).
+import { fsrsReview } from '../src/lib/fsrs';
+
+test('parity: first good review schedules days out, reps=1, no lapse', () => {
+  const good = fsrsReview(null, 3, 0);
+  assert.ok(good.intervalDays >= 3, `good interval ${good.intervalDays} should be days, not hours`);
+  assert.equal(good.state.reps, 1);
+  assert.equal(good.state.lapses, 0);
+  const again = fsrsReview(null, 1, 0);
+  assert.equal(again.intervalDays, 1);
+  assert.equal(again.state.lapses, 1);
+});
+
+test('parity: hard never schedules further than good', () => {
+  const base = fsrsReview(null, 3, 0);
+  const afterGood = fsrsReview(base.state, 3, base.intervalDays);
+  const afterHard = fsrsReview(base.state, 2, base.intervalDays);
+  assert.ok(afterHard.intervalDays <= afterGood.intervalDays);
+});
