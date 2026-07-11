@@ -55,7 +55,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
   const [typeSize, setTypeSize] = useState(settings.readerSize || 1.0);
   const [leadingAdj, setLeadingAdj] = useState(0);
   const [focusPara, setFocusPara] = useState(1);
-  const [sel, setSel] = useState<{ p: number; s: number; bottom: number } | null>(null);
+  const [sel, setSel] = useState<{ p: number; s: number; bottom: number; endP?: number; endS?: number } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const [toast, setToast] = useState<{ icon: string; msg: string } | null>(null);
@@ -158,6 +158,65 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
     setNoteDraft('');
   };
 
+  /** Ordered [p, s] pairs covered by the selection (tap = one, drag = range). */
+  const selPairs = (): [number, number][] => {
+    if (!sel || !content) return [];
+    const endP = sel.endP ?? sel.p;
+    const endS = sel.endS ?? sel.s;
+    const pairs: [number, number][] = [];
+    for (let pp = sel.p; pp <= endP; pp++) {
+      const n = content.paragraphs[pp]?.sentences.length ?? 0;
+      for (let ss = 0; ss < n; ss++) {
+        if ((pp > sel.p || ss >= sel.s) && (pp < endP || ss <= endS)) pairs.push([pp, ss]);
+      }
+    }
+    return pairs;
+  };
+
+  const selText = () =>
+    selPairs().map(([pp, ss]) => content?.paragraphs[pp]?.sentences[ss] ?? '').join(' ');
+
+  const selKeys = new Set(selPairs().map(([pp, ss]) => `${pp}-${ss}`));
+
+  /** Applies a tag across the whole selection; if every sentence already
+      carries it, removes it from all (same toggle semantics as single tap). */
+  const applyTagToSel = async (tag: string) => {
+    if (!sel) return;
+    const pairs = selPairs();
+    const allSame = pairs.length > 0 && pairs.every(([pp, ss]) => hlFor(pp, ss)?.tag === tag);
+    for (const [pp, ss] of pairs) {
+      const existing = hlFor(pp, ss);
+      if (allSame) await toggleHighlight(pp, ss, tag);
+      else if (!existing || existing.tag !== tag) await toggleHighlight(pp, ss, tag);
+    }
+  };
+
+  /** Multi-sentence text selection (mouse drag / touch selection) opens the
+      same popover, snapped to whole sentences. */
+  const suppressClick = useRef(false);
+  const onTextSelectEnd = () => {
+    if (digest) return;
+    const nativeSel = window.getSelection();
+    if (!nativeSel || nativeSel.isCollapsed || nativeSel.rangeCount === 0) return;
+    const findPS = (node: Node | null): [number, number] | null => {
+      const el = node instanceof Element ? node : node?.parentElement ?? null;
+      const span = el?.closest?.('[data-ps]') as HTMLElement | null;
+      if (!span?.dataset.ps) return null;
+      const [pp, ss] = span.dataset.ps.split('-').map(Number);
+      return [pp, ss];
+    };
+    const a = findPS(nativeSel.anchorNode);
+    const b = findPS(nativeSel.focusNode);
+    if (!a || !b) return;
+    const [start, end] = a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]) ? [a, b] : [b, a];
+    const rect = nativeSel.getRangeAt(0).getBoundingClientRect();
+    nativeSel.removeAllRanges();
+    suppressClick.current = true;
+    setSel({ p: start[0], s: start[1], bottom: rect.bottom, endP: end[0], endS: end[1] });
+    setNoteOpen(false);
+    setShowChrome(false);
+  };
+
   const startNote = async () => {
     if (!sel) return;
     let h = hlFor(sel.p, sel.s);
@@ -179,8 +238,10 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
 
   const makeCard = async () => {
     if (!sel || !content) return;
-    const sentence = content.paragraphs[sel.p]?.sentences[sel.s] ?? '';
-    if (!hlFor(sel.p, sel.s)) await toggleHighlight(sel.p, sel.s, 'idea');
+    const sentence = selText();
+    for (const [pp, ss] of selPairs()) {
+      if (!hlFor(pp, ss)) await toggleHighlight(pp, ss, 'idea');
+    }
     const words = sentence.split(' ');
     const front =
       words.length > 8
@@ -199,7 +260,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
 
   const doLookup = async () => {
     if (!sel || !content) return;
-    const sentence = content.paragraphs[sel.p]?.sentences[sel.s] ?? '';
+    const sentence = selText();
     const common = new Set('the a an and or but of to in on at for with as is are was were be been being i we you he she it they them this that these those not no so if then than when while which who whom whose our your their his her its my me us do did does have has had will would could should may might must can'.split(' '));
     const words = (sentence.toLowerCase().match(/[a-z]+/g) || []).filter((w) => !common.has(w));
     const word = words.sort((a, b) => b.length - a.length)[0];
@@ -263,7 +324,10 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
     <div
       className="grove-scroll"
       ref={scrollRef}
+      onMouseUp={onTextSelectEnd}
+      onTouchEnd={onTextSelectEnd}
       onClick={() => {
+        if (suppressClick.current) { suppressClick.current = false; return; }
         setShowChrome((s) => !s);
         closeSel();
       }}
@@ -448,7 +512,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
               >
                 {para.sentences.map((sent, s) => {
                   const h = hlFor(p, s);
-                  const isSel = sel && sel.p === p && sel.s === s;
+                  const isSel = selKeys.has(`${p}-${s}`);
                   return (
                     <span
                       key={s}
@@ -517,16 +581,16 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
           {!noteOpen ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="eyebrow">{hlFor(sel.p, sel.s) ? 'Highlighted' : 'Highlight color'}</span>
+                <span className="eyebrow">{selPairs().every(([pp, ss]) => hlFor(pp, ss)) ? 'Highlighted' : selPairs().length > 1 ? `Highlight ${selPairs().length} sentences` : 'Highlight color'}</span>
                 <button onClick={closeSel} style={{ ...barBtn(), padding: 4 }}><I.close size={16} /></button>
               </div>
               <div style={{ display: 'flex', gap: 7 }}>
                 {TAG_LIST.map(([t, label]) => {
-                  const on = hlFor(sel.p, sel.s)?.tag === t;
+                  const on = selPairs().every(([pp, ss]) => hlFor(pp, ss)?.tag === t);
                   return (
                     <button
                       key={t}
-                      onClick={() => toggleHighlight(sel.p, sel.s, t)}
+                      onClick={() => applyTagToSel(t)}
                       title={label}
                       style={{
                         flex: 1, height: 34, borderRadius: 9,
@@ -548,7 +612,7 @@ export default function Reader({ openAI }: { openAI: (init?: AiInit) => void }) 
                 {serverMode && (
                   <button
                     onClick={() => {
-                      openAI({ bookId, chapterNo, passage: content.paragraphs[sel.p]?.sentences[sel.s] });
+                      openAI({ bookId, chapterNo, passage: selText() });
                       closeSel();
                     }}
                     style={{ ...barBtn(), flex: 1, justifyContent: 'center' }}
